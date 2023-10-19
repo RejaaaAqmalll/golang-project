@@ -1,13 +1,20 @@
 package main
 
 import (
+	"log"
+	"os"
 	"set-up-Golang/config"
 	"set-up-Golang/controller"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error can,t get .env")
+	}
 	route := gin.Default()
 	config.ConnectDB()
 	r := route.Group("/user")
@@ -17,5 +24,6 @@ func main() {
 		r.POST("logout", controller.Logout)
 	}
 
-	route.Run(":8080")
+	// port := os.Getenv("PORT_DATA")
+	route.Run(":" + os.Getenv("PORT_DATA"))
 }
