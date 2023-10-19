@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 func Register(c *gin.Context) {
@@ -36,28 +37,35 @@ func Register(c *gin.Context) {
 	}
 
 	db := config.ConnectDB()
-	user = model.User{
-		Nama:     request.Nama,
-		Email:    request.Email,
-		Password: string(hash),
-	}
+	e := helper.DoInManualQuery(db.Begin(), func(tx *gorm.DB) error {
+		var err error
+		user = model.User{
+			Nama:     request.Nama,
+			Email:    request.Email,
+			Password: string(hash),
+		}
 
-	err = db.Create(&user).Error
-
-	if err != nil {
-		helper.ErrorResponse(c, http.StatusInternalServerError, err)
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"code":   http.StatusOK,
-		"msg":    "Succes Insert Data",
-		"reason": nil,
-		"data": gin.H{
-			"nama":  user.Nama,
-			"email": user.Email,
-		},
+		err = tx.Create(&user).Error
+		if err != nil {
+			return err
+		}
+		return nil
 	})
+	if e != nil {
+		helper.ErrorResponse(c, http.StatusInternalServerError, e)
+		return
+	} else {
+		c.JSON(http.StatusOK, gin.H{
+			"code":   http.StatusOK,
+			"msg":    "Succes Insert Data",
+			"reason": nil,
+			"data": gin.H{
+				"nama":  user.Nama,
+				"email": user.Email,
+			},
+		})
+	}
+
 }
 
 func Login(c *gin.Context) {
